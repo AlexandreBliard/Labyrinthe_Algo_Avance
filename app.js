@@ -8,9 +8,9 @@ function randomOrNot() {
         content.removeChild(content.firstChild);
     }
     if (random) {
-        let randomCase = Math.floor(Math.random() * Object.keys(labyrinthes).length + 3);
+        let randomSize = Math.floor(Math.random() * Object.keys(labyrinthes).length + 3);
         let randomEx = Math.floor(Math.random() * 3);
-        new_labyrinthe(randomCase, labyrinthes[randomCase]["ex-" + randomEx]);
+        new_labyrinthe(randomSize, labyrinthes[randomSize]["ex-" + randomEx]);
     }else {
         new_labyrinthe(5, labyrinthes["5"]["ex-0"]);
     }
@@ -18,11 +18,11 @@ function randomOrNot() {
 
 /*===============CODE GENERANT LE LABYRINTHE=========================*/
 
-function new_labyrinthe(taille, ex) {
+function new_labyrinthe(size, ex) {
     arrayLab = new Array(ex.length);
 
-    document.getElementById("grid-container").style.gridTemplateColumns = "repeat(" + taille + ", 50px)";
-    document.getElementById("grid-container").style.gridTemplateRows = "repeat(" + taille + ", 50px)";
+    document.getElementById("grid-container").style.gridTemplateColumns = "repeat(" + size + ", 50px)";
+    document.getElementById("grid-container").style.gridTemplateRows = "repeat(" + size + ", 50px)";
 
     //haut droit bas gauche
     for (let i = 0; i < ex.length; i++) {
@@ -49,25 +49,36 @@ function new_labyrinthe(taille, ex) {
         element.style.borderColor = "rgb(210,10,122)";
         document.getElementById("grid-container").appendChild(element);
     }
-    console.log(arrayLab)
 }
-function play() {
+/*=============================TDA=======================
+* code is to similar :
+* if I can select DFS or BFS in a select in index.html and then
+* input .pop or .shift into a parameter I will can have
+* the same code but in another way*/
+function playDFS() {
+    let t0 = performance.now();
     DFS(arrayLab, arrayLab[0]);
+    console.log("fonction DFS : " + (t0 - performance.now()));
+}
+
+function playBFS() {
+    let t0 = performance.now();
+    BFS(arrayLab, arrayLab[0]);
+    console.log("fonction BFS : " + (t0 - performance.now()));
 }
 /*==============CODE SE DEPLACANT DANS LE LABYRINTHE=================*/
-function DFS(labyrinthe, caseDepart) {
+function DFS(labyrinthe, cellStart) {
    let stack = [];
-   stack.push(caseDepart);
-   visited(caseDepart);
+   stack.push(cellStart);
+   visited(cellStart);
    while (stack.length > 0) {
-       let v = stack.pop()
-       visited(v);
-       if (lastCase(v)) { return; }
-       let listesCasesVoisines = allVoisin(v, arrayLab);
-       for (let w = 0; w<listesCasesVoisines.length;w++) {
-           if (!listesCasesVoisines[w].isVisited) {
-               stack.push(listesCasesVoisines[w]);
-
+       let cellActual = stack.pop()
+       visited(cellActual);
+       if (lastCase(cellActual)) { return; }
+       let listCellsAroundCellActualWithNoWalls = allCellsAroundCellActualWithNoWalls(cellActual);
+       for (let w = 0; w<listCellsAroundCellActualWithNoWalls.length;w++) {
+           if (!listCellsAroundCellActualWithNoWalls[w].isVisited) {
+               stack.push(listCellsAroundCellActualWithNoWalls[w]);
            }
        }
 
@@ -75,26 +86,51 @@ function DFS(labyrinthe, caseDepart) {
     return false;
 }
 
-function visited(s) {
-    s.isVisited = true;
-    let idCase = "cellule" + s["posX"] + "_" + s["posY"];
+function BFS(labyrinthe, cellStart) {
+    let queued = [];
+    queued.push(cellStart);
+    visited(cellStart);
+    while (queued.length > 0) {
+        let cellActual = queued.shift()
+        visited(cellActual);
+        if (lastCase(cellActual)) { return; }
+        let listCellsAroundCellActualWithNoWalls = allCellsAroundCellActualWithNoWalls(cellActual);
+        for (let w = 0; w<listCellsAroundCellActualWithNoWalls.length;w++) {
+            if (!listCellsAroundCellActualWithNoWalls[w].isVisited) {
+                queued.push(listCellsAroundCellActualWithNoWalls[w]);
+            }
+        }
+
+    }
+    return false;
+}
+
+function visited(cellActual) {
+    cellActual.isVisited = true;
+    let idCase = "cellule" + cellActual["posX"] + "_" + cellActual["posY"];
     document.getElementById(idCase).style.backgroundColor = "rgb(62,234,207)";
 }
 
-function allVoisin(caseActuelle, tableauLabyrinthe) {
+/*
+* you need cellActual
+* cellActual is "v"
+* we checked i
+* if i === 0 so the move is up
+* if i === 1 so the move is righr
+* This move is based on CSS logic for assign border : up right down left*/
+function allCellsAroundCellActualWithNoWalls(cellActual) {
 
     let result = [];
-    for (let i = 0; i<caseActuelle.walls.length; i++) {
-        if (!caseActuelle.walls[i]) {
+    for (let i = 0; i<cellActual.walls.length; i++) {
+        if (!cellActual.walls[i]) {
             switch (i) {
-                case 0 : result.push(getCaseByCoordinate(caseActuelle.posX-1, caseActuelle.posY));//haut
+                case 0 : result.push(getCaseByCoordinate(cellActual.posX-1, cellActual.posY));//haut
                     break;
-                case 1 : result.push(getCaseByCoordinate(caseActuelle.posX, caseActuelle.posY+1));//droite
-
+                case 1 : result.push(getCaseByCoordinate(cellActual.posX, cellActual.posY+1));//droite
                     break;
-                case 2 : result.push(getCaseByCoordinate(caseActuelle.posX+1, caseActuelle.posY));//bas
+                case 2 : result.push(getCaseByCoordinate(cellActual.posX+1, cellActual.posY));//bas
                     break;
-                case 3 : result.push(getCaseByCoordinate(caseActuelle.posX, caseActuelle.posY-1));//gauche
+                case 3 : result.push(getCaseByCoordinate(cellActual.posX, cellActual.posY-1));//gauche
             }
         }
     }
@@ -108,14 +144,6 @@ function getCaseByCoordinate(x, y) {
         }
     }
     return null;
-}
-
-function getCaseByIndex(i) {
-
-}
-
-function getIndexByCoordonate(x, y) {
-
 }
 
 function lastCase(currentCase) {
